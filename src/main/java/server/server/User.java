@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.net.SocketException;
 
 /**
  *
@@ -35,13 +36,15 @@ public class User implements Runnable {
 
             name = in.readLine();
 
-            server.delivery("Server","new user " + name,"data test");
+            server.delivery("Server", "new user " + name, "data test");
 
             String s;
             while (true) {
                 s = in.readLine();
-                server.delivery(name,s,"data test");
+                server.delivery(name, s, "data test");
             }
+        }catch (SocketException e){
+            server.delivery("Server","User "+name+" disconnected","data test");
         } catch (IOException e) {
             e.printStackTrace();
         }
