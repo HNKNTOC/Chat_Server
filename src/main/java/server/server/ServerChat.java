@@ -8,7 +8,7 @@ import java.net.Socket;
 import java.util.ArrayList;
 
 /**
- * Created by HNKNTOC on 30.12.2015.
+ * Server
  */
 public class ServerChat {
 
@@ -34,6 +34,12 @@ public class ServerChat {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public void exceptionUser(User user){
+        user.close();
+        listUsers.remove(user);
+        delivery("Server","User "+user.getName()+" disconnected","data test");
     }
 
     public void delivery(String nameAuthor, String content, String data){

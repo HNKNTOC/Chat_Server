@@ -22,6 +22,10 @@ public class User implements Runnable {
         this.server = server;
     }
 
+    public String getName() {
+        return name;
+    }
+
     public PrintWriter getOut() {
         return out;
     }
@@ -44,7 +48,16 @@ public class User implements Runnable {
                 server.delivery(name, s, "data test");
             }
         }catch (SocketException e){
-            server.delivery("Server","User "+name+" disconnected","data test");
+            server.exceptionUser(this);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void close(){
+        try {
+            socket.close();
+            out.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
