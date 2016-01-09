@@ -5,7 +5,10 @@ package server.server;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 
 /**
  * Server
@@ -43,12 +46,16 @@ public class ServerChat {
     }
 
     public void delivery(String nameAuthor, String content, String data){
-        System.out.println(nameAuthor+":"+content+", "+data);
+        System.out.println(nameAuthor + ":" + content + ", " + getTime());
         for (User user:listUsers){
             user.getOut().println(nameAuthor);
             user.getOut().println(content);
-            user.getOut().println(data);
+            user.getOut().println(getTime());
         }
+    }
+
+    public String getTime(){
+        return new SimpleDateFormat("h:mm").format(new Date());
     }
 
 }
