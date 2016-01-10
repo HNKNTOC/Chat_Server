@@ -11,15 +11,21 @@ import java.net.SocketException;
 /**
  *
  */
-public class User implements Runnable {
+public class Client implements Runnable {
     private Socket socket;
     private ServerChat server;
     private PrintWriter out;
     private String name;
+    private int idClient;
 
-    public User(Socket socket,ServerChat server) {
+    public Client(Socket socket, ServerChat server, int idClient) {
         this.socket = socket;
         this.server = server;
+        this.idClient = idClient;
+    }
+
+    public int getIdClient() {
+        return idClient;
     }
 
     public String getName() {
@@ -34,23 +40,34 @@ public class User implements Runnable {
     public void run() {
         try {
 
-            out = new PrintWriter(socket.getOutputStream(), true);
+            out = new PrintWriter(socket.getOutputStream(),true);
             BufferedReader in = new BufferedReader(
                     new InputStreamReader(socket.getInputStream()));
 
             name = in.readLine();
 
-            server.delivery("Server", "new user " + name, "data test");
+            server.delivery("Server", "new user " + name);
 
             String s;
             while (true) {
                 s = in.readLine();
-                server.delivery(name, s, "data test");
+                processingMessage(s);
             }
         }catch (SocketException e){
             server.exceptionUser(this);
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    public void processingMessage(String txt){
+        //Проверка если первый символ / то пришла команда
+        if(server.checkCommand(txt)){
+            //выполнение команды
+            server.newCommand(txt,idClient);
+        }else {
+            // отправка сообщения.
+            server.delivery(name, txt);
         }
     }
 
@@ -61,5 +78,10 @@ public class User implements Runnable {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    @Override
+    public String toString() {
+        return name;
     }
 }
