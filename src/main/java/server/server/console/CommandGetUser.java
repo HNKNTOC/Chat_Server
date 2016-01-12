@@ -21,7 +21,7 @@ public class CommandGetUser implements ConsoleCommand {
     @Override
     public void start(String value, int idClient) {
         if(value == null){
-            serverChat.outMessages(idClient, "Server", serverChat.listClient.values().toString());
+            serverChat.outMessages(idClient, "Server", serverChat.getListClient().values().toString());
         }else {
             switch (value){
                 case "help":

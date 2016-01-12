@@ -1,10 +1,15 @@
 package server.server;
 
+import server.server.clients.Client;
+import server.server.clients.ClientDefault;
+import server.server.clients.ClientFactory;
 import server.server.console.CommandGetUser;
 import server.server.console.CommandHelp;
 import server.server.console.ConsoleCommand;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -15,17 +20,36 @@ import java.util.HashMap;
 /**
  * Server
  */
-public class ServerChat {
+public class ServerChat implements Server {
 
-    public HashMap<Integer,Client> listClient = new HashMap<>();
-    public HashMap<String,ConsoleCommand> listCommand = new HashMap<>();
-    public int id=0;
+    private HashMap<Integer, Client> listClient = new HashMap<>();
+    private HashMap<String,ConsoleCommand> listUserCommand = new HashMap<>();
+    private HashMap<String,ConsoleCommand> listAdminCommand = new HashMap<>();
+    private int id=0;
 
     public ServerChat() {
-        addCommand(new CommandHelp(this));
-        addCommand(new CommandGetUser(this));
+        addUserCommand(new CommandHelp(this));
+
+        addAdminCommand(new CommandHelp(this));
+        addAdminCommand(new CommandGetUser(this));
     }
 
+    @Override
+    public HashMap<Integer, Client> getListClient() {
+        return listClient;
+    }
+
+    @Override
+    public HashMap<String, ConsoleCommand> getListUserCommand() {
+        return listUserCommand;
+    }
+
+    @Override
+    public HashMap<String, ConsoleCommand> getListAdminCommand() {
+        return listAdminCommand;
+    }
+
+    @Override
     public void start(){
         try {
             System.out.println("ServerChat start....");
@@ -33,13 +57,20 @@ public class ServerChat {
 
             while (true){
                 Socket socket = serverSocket.accept();
-                System.out.println("New connect:"+socket.getInetAddress().toString());
+                System.out.println("New connect:" + socket.getInetAddress().toString());
 
-                Client client = new Client(socket,this,id);
-                Thread thread = new Thread(client);
-                thread.start();
+                PrintWriter printWriter = new PrintWriter(socket.getOutputStream(),true);
+                BufferedReader reader =
+                        new BufferedReader(new InputStreamReader(socket.getInputStream()));
+
+                String name = reader.readLine();
+
+                ClientFactory factory = new ClientFactory();
+
+                Client client = factory.getClient(name,printWriter,reader,id,this);
 
                 listClient.put(id, client);
+                delivery("Server","new user "+client.getName());
                 id++;
 
             }
@@ -49,23 +80,20 @@ public class ServerChat {
         }
     }
 
-    public void exceptionUser(Client user){
-        user.close();
-        listClient.remove(user.getIdClient());
-        delivery("Server", "Client " + user.getName() + " disconnected");
-    }
-
     /**
      * Отсылает сообщение всем клиентам.
      * @param nameAuthor имя отправителя
      * @param content содержание сообщения
      */
+    @Override
     public void delivery(String nameAuthor, String content){
-        System.out.println(nameAuthor + ":" + content + ", " + getTime());
+        String time = getTime();
+        System.out.println(nameAuthor + ":" + content + ", " + time);
         for (Client user: listClient.values()){
-            user.getOut().println(nameAuthor);
-            user.getOut().println(content);
-            user.getOut().println(getTime());
+            PrintWriter out = user.getOut();
+            out.println(nameAuthor);
+            out.println(content);
+            out.println(time);
         }
     }
 
@@ -76,6 +104,7 @@ public class ServerChat {
      * @param content содержание сообщения
      * @return true если сообщение отправлено, false если id нет в списке.
      */
+    @Override
     public boolean outMessages(int idUser,String nameAuthor, String content){
         Client user = listClient.get(idUser);
         if(user==null){
@@ -89,42 +118,34 @@ public class ServerChat {
         return true;
     }
 
+    @Override
+    public void stop() {
+
+    }
+
     /**
-     * Проверяет наченается ли строка с /.
-     * @param s
-     * @return true если первый символ в строке / false если нет
+     * Исключает клиент
+     * @param id Индефекатор клиента.
+     * @return
      */
-    public boolean checkCommand(String s){
-        return (s.charAt(0)=='/');
+    @Override
+    public boolean exceptionUser(int id) {
+        Client client = listClient.get(id);
+        if(client==null){
+            return false;
+        }
+        client.close();
+        listClient.remove(id);
+        delivery("Server", "Client " + client.getName() + " disconnected");
+        return false;
     }
 
-    public void newCommand(String s,int idClient){
-
-        String command,value;
-
-        s = String.copyValueOf(s.toCharArray(),1,s.length()-1);
-        String[] strings = s.trim().split(" ");
-
-        if(strings.length==2){
-            command = strings[0];
-            value = strings[1];
-        }else {
-            command = strings[0];
-            value = null;
-        }
-
-        for(String key:listCommand.keySet()){
-            if(key.equals(command)){
-                listCommand.get(key).start(value,idClient);
-                return;
-            }
-        }
-        outMessages(idClient,"Server","Command not found");
-
+    public void addUserCommand(ConsoleCommand command){
+        listUserCommand.put(command.getOperator(), command);
     }
 
-    public void addCommand(ConsoleCommand command){
-        listCommand.put(command.getOperator(),command);
+    public void addAdminCommand(ConsoleCommand command){
+        listAdminCommand.put(command.getOperator(), command);
     }
 
     public String getTime(){

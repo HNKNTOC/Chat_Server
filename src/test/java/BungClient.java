@@ -20,8 +20,6 @@ public class BungClient {
             printWriter = new PrintWriter(socket.getOutputStream(),true);
             reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
-            printNewMessage("BungClient");
-
             Thread thread = new Thread(new Runnable() {
                 @Override
                 public void run() {
@@ -41,11 +39,12 @@ public class BungClient {
                 }
             });
             thread.start();
+            printNewMessage("BungClient");
 
             Scanner scanner = new Scanner(System.in);
 
             while (scanner.hasNext()){
-                System.out.println(scanner.nextLine());
+                printWriter.println(scanner.nextLine());
             }
 
 
